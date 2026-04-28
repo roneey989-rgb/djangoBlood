@@ -3,9 +3,12 @@ from .views import *
 
 urlpatterns = [
     path('status/',serv_status),
-    path('signup/', signup),
-    path('login/', login),
+    path('start_signup/', start_signup),
+    path('start_login/', start_login),
+    path('verify_otp/',verify_otp),
     path('set-role/', set_role),
+    path('get_user_data/',get_user_data),
+    path('save-fcm-token/',save_fcm_token),
     path('create-donor/', create_donor),
     path('create_appointment/', create_appointment),
     path('search_blood/', search_blood),
@@ -22,4 +25,9 @@ urlpatterns = [
     path('hospital_find/',hospital_find_blood),
     path('ai-health/', ai_health),
     path('get_notifications/',get_notifications),
+    path('accept_request/',accept_request),
+    path('confirm_request/',confirm_request),
+    path('reject_request/',reject_request),
+    path('search_doctors_hospitals/',search_doctors_hospitals),
+    path('approve_by_hospital/',approve_by_hospital),
 ]

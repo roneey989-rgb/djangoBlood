@@ -1,5 +1,41 @@
+# Python
 __pycache__/
 *.pyc
-db.sqlite3
-.env
+*.pyo
+*.pyd
+
+# Virtual environment
 .venv/
+venv/
+env/
+
+# Environment variables
+.env
+
+# Django
+db.sqlite3
+*.sqlite3
+/staticfiles/
+/media/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code / IDE
+.vscode/
+.idea/
+
+# Build / distribution
+build/
+dist/
+*.egg-info/
+
+# Firebase / sensitive files
+*.json
+
+# Misc
+*.swp

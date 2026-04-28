@@ -1,30 +1,28 @@
 from openai import OpenAI
+from django.conf import settings
 
-# Create client (no settings.py needed if you put key here)
 client = OpenAI(
-    api_key="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",
-    base_url="https://openrouter.ai/api/v1"
+    api_key=settings.API_KEY,   #  from environment
+    base_url="https://openrouter.ai/api/v1",
+    default_headers={
+        "HTTP-Referer": "https://djangoblood.onrender.com",  # your live URL
+        "X-Title": "Health App"
+    }
 )
 
 def get_health_ai_response(user_message):
     try:
         response = client.chat.completions.create(
-            model="deepseek/deepseek-chat",  # free model
+            model="deepseek/deepseek-chat",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a health assistant. Give very short health tips (1-2 lines only). No explanation."
-                },
-                {
-                    "role": "user",
-                    "content": user_message
-                }
+                {"role": "system", "content": "Give very short health tips (1 line only)."},
+                {"role": "user", "content": user_message}
             ],
-            max_tokens=50  
+            max_tokens=50
         )
 
         return response.choices[0].message.content.strip()
 
     except Exception as e:
-        return f"ERROR: {str(e)}"
-    
+        print("AI ERROR:", str(e))
+        return "Server busy. Try again."

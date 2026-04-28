@@ -35,46 +35,88 @@ class User(models.Model):
         return self.name
 
 #Class Doner  
+from django.db import models
+
 class Donor(models.Model):
     donor_id = models.AutoField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="donor_profile"
+    )
+
     original_name = models.CharField(max_length=100)
     blood_group = models.CharField(max_length=5)
-    address = models.CharField(max_length=255,default="Not Provude")  
+
+    address = models.CharField(max_length=255, default="Not Provide")
+
+    # NEW FIELDS
+    state = models.CharField(max_length=100, default="Unknown")
+    district = models.CharField(max_length=100, default="Unknown")
+
+    # 🔥 NEW FIELD (LAST DONATION DATE)
+    last_donation_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return self.original_name
 
 
 
-
 # DOCTOR
-
 class Doctor(models.Model):
+
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+    )
+
     doctor_id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+
     doctor_name = models.CharField(max_length=100)
     blood_group = models.CharField(max_length=5)
     reg_number = models.CharField(max_length=100)
     certificate_url = models.URLField(null=True, blank=True)
 
+    # ✅ LOCATION FIELDS
+    state = models.CharField(max_length=100, default="Not Provided")
+    district = models.CharField(max_length=100, default="Not Provided")
+    address = models.CharField(max_length=255, default="Not Provided")  # ✅ NEW
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+
+    code_id = models.CharField(max_length=20, null=True, blank=True, unique=True)
+
     def __str__(self):
         return self.doctor_name
-
-
-#  HOSPITAL 
-
+# HOSPITAL
 class Hospital(models.Model):
+
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+    )
+
     hospital_id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+
     name = models.CharField(max_length=200)
     reg_number = models.CharField(max_length=100)
     address = models.CharField(max_length=255)
     certificate_url = models.URLField(null=True, blank=True)
+    state = models.CharField(max_length=100, default="Not Provided")
+    district = models.CharField(max_length=100, default="Not Provided")
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+
+  
+    code_id = models.CharField(max_length=20, null=True, blank=True, unique=True)
 
     def __str__(self):
         return self.name
-
 
 #  APPOINTMENT 
 
@@ -86,11 +128,24 @@ class Appointment(models.Model):
     doctor = models.ForeignKey(Doctor, null=True, blank=True, on_delete=models.SET_NULL)
     hospital = models.ForeignKey(Hospital, null=True, blank=True, on_delete=models.SET_NULL)
 
+   
     status = models.CharField(
         max_length=20,
         choices=(
             ('pending', 'Pending'),
             ('doctor_approved', 'Doctor Approved'),
+            ('completed', 'Completed'),
+            ('rejected', 'Rejected'),
+        ),
+        default='pending'
+    )
+
+   
+    status2 = models.CharField(
+        max_length=20,
+        choices=(
+            ('pending', 'Pending'),
+            ('hospital_approved', 'Hospital Approved'),
             ('completed', 'Completed'),
             ('rejected', 'Rejected'),
         ),
@@ -135,31 +190,37 @@ class BloodUsage(models.Model):
 
 
 # BLOOD REQUEST
-
 class BloodRequest(models.Model):
     request_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     blood_group = models.CharField(max_length=5)
+
+    #  NEW FIELDS
+    state = models.CharField(max_length=100, default="Not Provided")
+    district = models.CharField(max_length=100, default="Not Provided")
+
+    # (optional: keep exact location if needed)
     address = models.CharField(max_length=255)
-    
+
     status = models.CharField(
         max_length=20,
         choices=(
+            ('avalable','Avalable'),
             ('pending', 'Pending'),
             ('completed', 'Completed'),
             ('rejected', 'Rejected'),
         ),
         null=True,
         blank=True,
-        default='pending'  # automatically set new requests to pending
+        default='pending'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
     message = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.blood_group} request by {self.user.name} at {self.address}"
+        return f"{self.blood_group} request by {self.user.name} in {self.district}"
 
 # -------------------Doctor varification-------------------
 class DoctorVerification(models.Model):
@@ -186,16 +247,45 @@ class DoctorVerification(models.Model):
 
 #------------------------------NOTIFICATION-----------------------------
 class NotificationUser(models.Model):
-    notification_id = models.AutoField(primary_key=True)  # primary key
-    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)  # link to user, nullable
+    notification_id = models.AutoField(primary_key=True)
+
+    user = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
 
     title = models.CharField(max_length=100)
     message = models.TextField()
 
     type = models.CharField(max_length=50, default="system")
-    is_read = models.BooleanField(default=False)
 
+    
+    request_id = models.IntegerField(null=True, blank=True)
+    requester_id = models.IntegerField(null=True, blank=True)
+    sender_id = models.IntegerField(null=True, blank=True)
+
+    is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
+    
+#--------------------------------REQUEST ACCEPT----------------------------------
+class RequestAccept(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE)
+    donor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="accepted_donations")
+    requester = models.ForeignKey(User, on_delete=models.CASCADE, related_name="blood_requests")
+    status = models.CharField(max_length=20, default="pending")  
+    # pending, completed
+    created_at = models.DateTimeField(auto_now_add=True)
+
+#----------------------------OTP---------------------------------
+class OTP(models.Model):
+    phone = models.CharField(max_length=15)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
