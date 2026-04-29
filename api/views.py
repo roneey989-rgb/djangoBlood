@@ -197,28 +197,33 @@ def set_role(request):
 @api_view(['GET'])
 def get_user_data(request):
 
-    #  GET TOKEN FROM HEADER
     auth_header = request.headers.get("Authorization")
-    print("auth header:",auth_header)
+    print("auth header:", auth_header)
+
     if not auth_header:
         return Response({"error": "No token provided"}, status=401)
 
     token = auth_header.replace("Bearer ", "")
-    print("TOKEN RECIVED:",token)
-    #  FIND USER USING TOKEN
+    print("TOKEN RECIVED:", token)
+
     try:
         user = User.objects.get(token=token)
-        print("user found:",user)
+        print("user found:", user)
     except User.DoesNotExist:
         print("user not found for token")
         return Response({"error": "Invalid token"}, status=401)
 
-    #  GET RELATED PROFILES
+    # -------- RELATED PROFILES --------
     donor = Donor.objects.filter(user=user).first()
     doctor = Doctor.objects.filter(user=user).first()
     hospital = Hospital.objects.filter(user=user).first()
 
-    #  RESPONSE (UNCHANGED LOGIC)
+    # 🔥 GET APPOINTMENT (NEW)
+    appointment = None
+    if donor:
+        appointment = Appointment.objects.filter(donor=donor).order_by('-created_at').first()
+
+    # -------- RESPONSE --------
     return Response({
         "user_id": user.user_id,
         "name": user.name,
@@ -230,12 +235,15 @@ def get_user_data(request):
         "has_doctor": doctor is not None,
         "has_hospital": hospital is not None,
 
-        # RETURN IDS
+        # IDS
         "donor_id": donor.donor_id if donor else None,
         "doctor_id": doctor.doctor_id if doctor else None,
         "hospital_id": hospital.hospital_id if hospital else None,
-    })
 
+        # 🔥 NEW APPOINTMENT DATA
+        "appointment_id": appointment.appointment_id if appointment else None,
+        "appointment_code": appointment.appointment_code if appointment else None,
+    })
 
 #---------------------------------- SAVE TOKEN --------------------------------
 
@@ -331,7 +339,7 @@ def create_appointment(request):
                 remaining_days = (next_allowed_date - today).days
 
                 return Response({
-                    "error": "You cannot donate blood yet you can donate after {remaining_days} days",
+                    "error": f"You cannot donate blood yet. You can donate after {remaining_days} days",
                     "next_allowed_date": str(next_allowed_date),
                     "remaining_days": remaining_days
                 }, status=400)
@@ -345,6 +353,7 @@ def create_appointment(request):
         if existing_appointment:
             return Response({
                 "error": "You already have an active appointment",
+                "appointment_id": existing_appointment.appointment_id,   # ✅ added
                 "appointment_code": existing_appointment.appointment_code
             }, status=400)
 
@@ -360,6 +369,7 @@ def create_appointment(request):
 
         return Response({
             "message": "Appointment created",
+            "appointment_id": appointment.appointment_id,   # added
             "appointment_code": code
         })
 
